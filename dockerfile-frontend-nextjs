@@ -1,0 +1,48 @@
+# Build Stage - Creates optimized production build
+FROM node:16-alpine as builder
+WORKDIR /app
+
+# Copy package files first for better caching
+COPY package*.json ./
+RUN npm ci --only=production
+# Why: Install dependencies separately for layer caching
+
+# Copy source code and build
+COPY . .
+RUN npm run build
+# Creates: .next/ directory with optimized build
+
+# Runtime Stage - Lightweight production server
+FROM node:16-alpine
+WORKDIR /app
+
+# Copy package files for production dependencies
+COPY package*.json ./
+RUN npm ci --only=production
+# Why: Only production dependencies, no dev tools
+
+# Copy built application from builder stage
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/next.config.js ./
+# Takes: Only built files, not source code
+
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nextjs -u 1001
+RUN chown -R nextjs:nodejs /app
+USER nextjs
+# Why: Security best practice
+
+# Expose port
+EXPOSE 3000
+# Documents: Port 3000 will be used
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000 || exit 1
+# Why: Container orchestration can monitor app
+
+# Start production server
+CMD ["npm", "start"]
+# Why: Uses built files from .next/ directory
