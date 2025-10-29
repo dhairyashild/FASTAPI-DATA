@@ -1,0 +1,17 @@
+# Equivalent to Docker's build stage
+cd ~/DevOps-Assignment/frontend
+npm install
+# Creates: node_modules/ with all dependencies
+
+# Build production version (optional for dev)
+npm run build
+# Creates: .next/ directory with optimized build
+
+# Set backend URL
+echo "NEXT_PUBLIC_BACKEND_URL=http://15.206.91.218:8000" > .env.local
+
+# Equivalent to Docker's runtime stage
+npm run dev
+# OR for production:
+npm start
+# Uses: node_modules/ and .next/ directory
